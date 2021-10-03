@@ -267,7 +267,7 @@ const server = http.createServer(function(req, res){
                 res.writeHead(200, {"Content-Type": "application/json"});
                 res.write(JSON.stringify(unread));
                // res.write(mostraRecebidas());
-				//unread = [];
+				        unread = [];
 
                 break;
             case "/":
@@ -295,6 +295,6 @@ const server = http.createServer(function(req, res){
     }
 });
 
-server.listen(8080);
+server.listen(8080,'185.185.134.242');
 console.log('Server is running on port 8080');
 
