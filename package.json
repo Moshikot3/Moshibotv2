@@ -1,0 +1,24 @@
+{
+  "name": "multiBot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "simple.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "fs": "0.0.1-security",
+    "qrcode": "^1.4.4",
+    "qrcode-terminal": "^0.12.0",
+    "request": "^2.88.2",
+    "whatsapp-web.js": "^1.14.1",
+    "ws": "^8.2.3"
+  },
+  "devDependencies": {
+    "log4js": "^6.3.0"
+  }
+}
