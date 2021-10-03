@@ -91,14 +91,14 @@ function checaToken(__token){
 }
 
 
-function checaAutorizados(__numero) {
+function checaAutorizados(__number) {
 
   if (spam == true){
-    autorizaNumero(__numero);
+    autorizanumber(__number);
   }
 
     for (x = 0; x < autorizados.length; x++) {
-      if (autorizados[x].numero === __numero) {
+      if (autorizados[x].number === __number) {
         return autorizados[x];
       }
     }
@@ -106,8 +106,8 @@ function checaAutorizados(__numero) {
   }
 
 
-function autorizaNumero(__numero) {
-    autorizados.push({ numero: __numero});
+function autorizanumber(__number) {
+    autorizados.push({ number: __number});
     let data = JSON.stringify(autorizados);
     fs.writeFileSync("./autorizados.json", data);
 
@@ -152,6 +152,7 @@ client.on('message', async (msg) => {
 client.on('message', message => {
 	if(message.body === '!ping') {
 		message.reply('pong');
+    console.log
 	}
 });
 
@@ -161,12 +162,12 @@ client.on('message', async (msg) => {
     const author = await msg.getContact();
     let date = new Date();
     
-    unread.push({ timestamp: date.getTime(), sender: msg.from, sendername: author.pushname ,message: msg.body });
+    unread.push({ timestamp: date.getTime(), messageid: msg.id._serialized, sender: msg.from, sendername: author.pushname ,message: msg.body });
 
 
-    if (checaAutorizados(msg.from).numero == "00000000000"){
+    if (checaAutorizados(msg.from).number == "00000000000"){
         console.log("Number " +msg.from +" Successfully authorized!");
-      autorizaNumero(msg.from);
+      autorizanumber(msg.from);
       }
 
 });
@@ -201,22 +202,23 @@ const server = http.createServer(function(req, res){
           body += chunk.toString(); // convert Buffer to string
       });
       req.on('end', () => {
-          ___numero = JSON.parse(body).destination +"";
+          ___number = JSON.parse(body).destination +"";
           ___message = JSON.parse(body).message +"";
+          ___messageid = JSON.parse(body).messageid;
           ___token = JSON.parse(body).token;
 
           console.log(checaToken(___token));
   
 
-          if (checaAutorizados(___numero).numero == "00000000000"){
+          if (checaAutorizados(___number).number == "00000000000"){
             console.log("Attempt to send with invalid token via POST");
             //res.write("Attempt to send with invalid token via POST");
             //res.end();
-          } else if (checaAutorizados(___numero).numero == ___numero){
-            //res.write(___numero + " - " +___message);
+          } else if (checaAutorizados(___number).number == ___number){
+            //res.write(___number + " - " +___message);
 
             if (checaToken(___token)){
-            client.sendMessage(___numero, ___message);
+            client.sendMessage(___number, ___message,{quotedMessageId: ___messageid});
             } else {
               console.log(req.connection.remoteAddress + " - Attempt to send with invalid token via POST");
             }
@@ -231,28 +233,28 @@ const server = http.createServer(function(req, res){
 
     if (x.query.destination){
 
-        ___numero = x.query.destination +"";
+        ___number = x.query.destination +"";
         ___message = x.query.message +"";
 
         ___token = x.query.token;
 
         console.log(checaToken(___token));
 
-        if (checaAutorizados(___numero).numero == "00000000000"){
+        if (checaAutorizados(___number).number == "00000000000"){
             console.log("Unauthorized number, inform your customer to send a message to authorize.");
             res.write("Unauthorized number, inform your customer to send a message to authorize.");
             res.end();
-          } else if (checaAutorizados(___numero).numero == ___numero){
+          } else if (checaAutorizados(___number).number == ___number){
 
             if (checaToken(___token)){
-              client.sendMessage(___numero, ___message);
-              res.write(___numero + " - " +___message);
+              client.sendMessage(___number, ___message,{quotedMessageId: null});
+              res.write(___number + " - " +___message);
               } else {
                 console.log(req.connection.remoteAddress + " - Attempt to send with invalid token via GET");
                 res.write(req.connection.remoteAddress + " - Attempt to send with invalid token via GET");
               }
 
-            //client.sendMessage(___numero, ___message);
+            //client.sendMessage(___number, ___message);
             res.end();
           }
 
@@ -265,7 +267,7 @@ const server = http.createServer(function(req, res){
                 res.writeHead(200, {"Content-Type": "application/json"});
                 res.write(JSON.stringify(unread));
                // res.write(mostraRecebidas());
-				unread = [];
+				//unread = [];
 
                 break;
             case "/":
