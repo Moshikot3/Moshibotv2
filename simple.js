@@ -5,7 +5,7 @@ const fs = require('fs');
 const request = require('request');
 
 const qrcode = require("qrcode-terminal");
-const { Client } = require('whatsapp-web.js');
+const { Client, Location, List, Buttons } = require('whatsapp-web.js');
 
 const SESSION_FILE_PATH = './session.json';
 
@@ -156,6 +156,23 @@ client.on('message', message => {
 	}
 });
 
+client.on('message', message => {
+	if(message.body === 'קובי כפתר אותי') {
+    let button = new Buttons("להלן הכיפתור",[{body:"כפתור1"},{body:"כפתור2"},{body:"קפתור"}],"מכפתר אותך אחי","אל תשכח להתכפתר");
+    client.sendMessage(message.from, button);
+	}
+});
+
+client.on('message', msg => {
+	if(msg.body === '!list') {
+    let sections = [{title:'sectionTitle',rows:[{title:'ListItem1', description: 'desc'},{title:'ListItem2'}]}];
+    let list = new List('List body','btnText',sections,'Title','footer');
+    client.sendMessage(msg.from, list);
+}
+});
+
+
+
 client.on('message', async (msg) => {
     
     console.log('Message from: ', msg.from, " - ", msg.body);
@@ -295,6 +312,6 @@ const server = http.createServer(function(req, res){
     }
 });
 
-server.listen(8080,'185.185.134.242');
+server.listen(8080);
 console.log('Server is running on port 8080');
 
