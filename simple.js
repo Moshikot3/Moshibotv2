@@ -171,7 +171,7 @@ client.on('message', msg => {
 }
 });
 
-
+invites = []
 
 client.on('message', async (msg) => {
     
@@ -181,11 +181,51 @@ client.on('message', async (msg) => {
     
     unread.push({ timestamp: date.getTime(), messageid: msg.id._serialized, sender: msg.from, sendername: author.pushname ,message: msg.body });
 
+    switch (msg.body) {
+      case 'יש מסיבה':
+        let button = new Buttons("יש מסיבה מגיעים אחים שלי?",[{body:"מגיע"},{body:"לא מגיע אחי"}]);
+        client.sendMessage(msg.from, button);
 
+        break;
+      case "מגיע":
+        if (invites.includes(author.pushname))
+        {
+          msg.reply("תגיד לי יש לך אלצהיימר? שחרר זריז");
+          break;
+        }
+        msg.reply("וואלה אש " + author.pushname + " מגיע");
+        invites.push(author.pushname);
+        client.sendMessage(msg.from, invites.length + " כרגע מגיעים");
+        break;
+      case "לא מגיע אחי":
+        if (invites.includes(author.pushname))
+        {
+          msg.reply("דפקת ברוגז אההההההה?");
+          const index = invites.indexOf(author.pushname);
+          if (index > -1) {
+            invites.splice(index, 1);
+          }
+          
+          client.sendMessage(msg.from, invites.length + " כרגע מגיעים");
+          break;
+        }
+        msg.reply("סבתא שלך זונה");
+        break;
+      case "מי מגיע":
+        msg.reply(invites.toString())
+        break;
+      case "בדוק אותי":
+        msg.reply('בודדדדק אחושרמוטה בודק');
+      default:
+        break;
+    }
     if (checaAutorizados(msg.from).number == "00000000000"){
         console.log("Number " +msg.from +" Successfully authorized!");
       autorizanumber(msg.from);
       }
+
+
+
 
 });
 
