@@ -1,4 +1,4 @@
- const http = require("http");
+const http = require("http");
 const url = require('url');
 const fs = require('fs');
 
@@ -13,7 +13,7 @@ let client;
 
 const spam = true;
 const checkToken = true;
-
+let mesihba = false;
 
 const chatBot = true;
 const chatBotURL = "http://localhost/";
@@ -21,17 +21,12 @@ let sessionData;
 
 let sessao;
 let sessobj;
+let participants = {};
+let reminder_timer;
 
 if(fs.existsSync(SESSION_FILE_PATH)) {
-    //sessionData = require(SESSION_FILE_PATH);
-
     sessao = fs.readFileSync(SESSION_FILE_PATH);
     sessobj = JSON.parse(sessao);
-
-
-    //console.log(sessobj);
-    //console.log(sessao.toString());
-    //return;
 
     client = new Client({
       session: sessobj
@@ -43,10 +38,8 @@ if(fs.existsSync(SESSION_FILE_PATH)) {
 
 
 
-
-
-
 const QRCode = require('qrcode');
+const { clearInterval } = require("timers");
 
 estado = 0;
 
@@ -54,26 +47,6 @@ let autorizadosArquivo = fs.readFileSync("./autorizados.json");
 let autorizados = JSON.parse(autorizadosArquivo);
 
 let token = JSON.parse(fs.readFileSync("./token.json"));
-/*
-function redirectChatBot(timestamp, sender, message){
-
-  try {
-
-  request(chatBotURL +"?timestamp=" +timestamp +"&sender=" +sender +"&message=" +message, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-        console.log("Forwarded to ChatBot API")
-     } else {
-       console.log("Chatbot did not recieve the message");
-     }
-})
-
-  } catch(e) {
-    console.log("Error calling chatbot API");
-  }
-  
-
-}
-*/
 
 function checaToken(__token){
 
@@ -129,9 +102,9 @@ client.on('ready', () => {
 });
 
 client.on('message', async (msg) => {
-    if(msg.body === 'קובי תן תיוג') {
+    if(msg.body === "קראפבוט תקרא לכולם") {
 		
-        const chat = await msg.getChat();
+    const chat = await msg.getChat();
 		//Get sender name
 		//const author = await msg.getContact();
         
@@ -145,33 +118,42 @@ client.on('message', async (msg) => {
             text += `@${participant.id.user} `;
         }
 
-        await msg.reply("מתייג את כולם:\n"+text,"", { mentions });
+        await msg.reply(`יש משחק?:\n+${text}`, { mentions });
     }
 });
 
-client.on('message', message => {
-	if(message.body === '!ping') {
-		message.reply('pong');
-    console.log
-	}
-});
 
-client.on('message', message => {
-	if(message.body === 'קובי כפתר אותי') {
-    let button = new Buttons("להלן הכיפתור",[{body:"כפתור1"},{body:"כפתור2"},{body:"קפתור"}],"מכפתר אותך אחי","אל תשכח להתכפתר");
-    client.sendMessage(message.from, button);
-	}
-});
+async function reminder(chatid) {
+  let chat = await client.getChatById(chatid);
 
-client.on('message', msg => {
-	if(msg.body === '!list') {
-    let sections = [{title:'sectionTitle',rows:[{title:'ListItem1', description: 'desc'},{title:'ListItem2'}]}];
-    let list = new List('List body','btnText',sections,'Title','footer');
-    client.sendMessage(msg.from, list);
+  if (!chat.isGroup) {  return; }
+  let noresponse_string = '';
+  let mentions = [];
+  for(let participant of chat.participants) {
+    const contact = await client.getContactById(participant.id._serialized);
+    if (!(contact.pushname in participants) && !contact.isMe){
+      
+
+      noresponse_string += ` @${participant.id.user} `;
+      mentions.push(contact)
+    }
+  }
+  if (noresponse_string == '') { clearInterval(reminder_timer); return; }
+    
+  await client.sendMessage(chatid, `${noresponse_string} מזכיר אחים שלי לא עדכנתם עדיין`, { mentions });
 }
-});
 
-invites = []
+
+function getComing() {
+  coming = 0;
+  for(var person in participants) {
+    var arrive = participants[person];
+    if (arrive == 1) {
+      coming++;
+    }
+  }
+  return coming;
+}
 
 client.on('message', async (msg) => {
     
@@ -183,39 +165,66 @@ client.on('message', async (msg) => {
 
     switch (msg.body) {
       case 'יש מסיבה':
+        mesihba = true;
         let button = new Buttons("יש מסיבה מגיעים אחים שלי?",[{body:"מגיע"},{body:"לא מגיע אחי"}]);
-        client.sendMessage(msg.from, button);
-
+        await client.sendMessage(msg.from, button);
+        chat = await msg.getChat();
+        reminder_timer = setInterval(reminder, 3600*1000, msg.from);
         break;
       case "מגיע":
-        if (invites.includes(author.pushname))
-        {
-          msg.reply("תגיד לי יש לך אלצהיימר? שחרר זריז");
+        if (!mesihba) {
+          await client.sendMessage(msg.from, "לאן לדודה שלך הצולעת?");
           break;
         }
-        msg.reply("וואלה אש " + author.pushname + " מגיע");
-        invites.push(author.pushname);
-        client.sendMessage(msg.from, invites.length + " כרגע מגיעים");
+        if (author.pushname in participants && participants[author.pushname] == 1)
+        {
+          await client.sendMessage(msg.from, "תגיד לי יש לך אלצהיימר? שחרר זריז");
+        }else{
+          await client.sendMessage(msg.from, "סבבה אחי רשמתי");
+          participants[author.pushname] = 1;
+          await client.sendMessage(msg.from, `${getComing()} כרגע מגיעים`);
+        }
+
         break;
       case "לא מגיע אחי":
-        if (invites.includes(author.pushname))
-        {
-          msg.reply("דפקת ברוגז אההההההה?");
-          const index = invites.indexOf(author.pushname);
-          if (index > -1) {
-            invites.splice(index, 1);
-          }
-          
-          client.sendMessage(msg.from, invites.length + " כרגע מגיעים");
+        if (!mesihba) {
+          await client.sendMessage(msg.from, "לאן לדודה שלך הצולעת?");
           break;
         }
-        msg.reply("סבתא שלך זונה");
+        if (author.pushname in participants)
+        {
+          if (participants[author.pushname] == 1) {
+            await client.sendMessage(msg.from, "דפקת ברז אההההההה?");
+            participants[author.pushname] = 0;
+            await client.sendMessage(msg.from, `${getComing()} כרגע מגיעים`);
+          }else{
+            await client.sendMessage(msg.from, "אתה צריך כדורים אחי");
+          }
+        }else{
+          participants[author.pushname] = 0;
+          await client.sendMessage(msg.from, "סבתא שלך זונה");
+        }
         break;
       case "מי מגיע":
-        msg.reply(invites.toString())
+        for(var person in participants) {
+          var arrive = participants[person];
+          var arrival_string = '';
+          if (arrive == 1) {
+            arrival_string += `, ${person}`;
+          }
+          if (arrival_string == '') { arrival_string = 'וואלה אף אחד לא מגיע'; }
+          await client.sendMessage(msg.from, arrival_string);
+        }
+        
+        break;
+      case "בוטל המסיבה":
+        await client.sendMessage(msg.from, "המסיבה בוטלה בהצלחה");
+        participants = {};
+        meshiba = false;
+        clearInterval(reminder_timer);
         break;
       case "בדוק אותי":
-        msg.reply('בודדדדק אחושרמוטה בודק');
+        await client.sendMessage(msg.from, 'בודדדדק אחושרמוטה בודק');
       default:
         break;
     }
