@@ -22,6 +22,7 @@ let sessionData;
 let sessao;
 let sessobj;
 let participants = {};
+let LocationString = '';
 let reminder_timer;
 
 if(fs.existsSync(SESSION_FILE_PATH)) {
@@ -40,6 +41,7 @@ if(fs.existsSync(SESSION_FILE_PATH)) {
 
 const QRCode = require('qrcode');
 const { clearInterval } = require("timers");
+const { match } = require("assert");
 
 estado = 0;
 
@@ -47,7 +49,7 @@ let autorizadosArquivo = fs.readFileSync("./autorizados.json");
 let autorizados = JSON.parse(autorizadosArquivo);
 let MessagesFile = JSON.parse(fs.readFileSync("./Messages.json"));
 let token = JSON.parse(fs.readFileSync("./token.json"));
-var arrival_string = 'עדיין אין הצבעות';
+
 
 
 function checaToken(__token){
@@ -134,24 +136,25 @@ client.on('message', async (msg) => {
 
 
 async function reminder(chatid) {
-  let chat = await client.getChatById(chatid);
+    let chat = await client.getChatById(chatid);
 
-  if (!chat.isGroup) {  return; }
-  let noresponse_string = '';
-  let mentions = [];
-  for(let participant of chat.participants) {
+    if (!chat.isGroup || !mesihba) {  return; }
+    let noresponse_string = '';
+    let mentions = [];
+    for(let participant of chat.participants) {
     const contact = await client.getContactById(participant.id._serialized);
     if (!(contact.pushname in participants) && !contact.isMe){
-      
+        
 
-      noresponse_string += ` @${participant.id.user} `;
-      mentions.push(contact)
+        noresponse_string += ` @${participant.id.user} `;
+        mentions.push(contact)
     }
-  }
-  if (noresponse_string == '') { clearInterval(reminder_timer); return; }
-  let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],"חוזר בשנית: "+MessagesFile.EventTitle,MessagesFile.EventFooter);     
-  await client.sendMessage(chatid, `${noresponse_string}\n מזכיר אחים שלי לא עדכנתם עדיין\n*בינתיים מגיעים:*\n${arrival_string}`, { mentions });
-  await client.sendMessage(chatid, button);
+    }
+    if (noresponse_string == '') { clearInterval(reminder_timer); return; }
+    let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],"חוזר בשנית: "+MessagesFile.EventTitle+LocationString,MessagesFile.EventFooter);
+    if (getComing_full() != '') { noresponse_string += `\n*בנתיים מגיעים:*\n${getComing_full()}`}   
+    await client.sendMessage(chatid, `מזכיר עדיין לא עדכנתם ${noresponse_string}`, { mentions });
+    await client.sendMessage(chatid, button);
 }
 
 
@@ -166,6 +169,18 @@ function getComing() {
   return coming;
 }
 
+function getComing_full() {
+    var arrival_string = '';
+    for(var person in participants) {
+        var arrive = participants[person];
+        if (arrive == 1) {
+          arrival_string += `, ${person}`;
+        }
+        if (arrival_string == '') { arrival_string = 'וואלה אף אחד לא מגיע'; }
+      }
+    return arrival_string;
+}
+
 client.on('message', async (msg) => {
     
     console.log('Message from: ', msg.from, " - ", msg.body);
@@ -175,17 +190,26 @@ client.on('message', async (msg) => {
     unread.push({ timestamp: date.getTime(), messageid: msg.id._serialized, sender: msg.from, sendername: author.pushname ,message: msg.body });
 
     switch (msg.body) {
-      case '#התחלנו':
+      case msg.body.match(/^#התחלנו/)?.input:
+        LocationString = msg.body.split("#התחלנו ")[1]
+        if(mesihba){
+            await msg.reply("קיימת יציאה בתהליך, מספיק עם החלטורות");
+            break;
+        }
+        if(LocationString == undefined || ''){
+            await msg.reply("לא נבחר מיקום");
+            break;
+        }
         mesihba = true;
         //let button = new Buttons("יש מסיבה מגיעים אחים שלי?",[{body:"מגיע"},{body:"לא מגיע אחי"}]);
-        let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],MessagesFile.EventTitle,MessagesFile.EventFooter);
+        let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],MessagesFile.EventTitle+LocationString,MessagesFile.EventFooter);
         await client.sendMessage(msg.from, button);
         chat = await msg.getChat();
         reminder_timer = setInterval(reminder, 15*1000, msg.from);
         break;
       case "אגיע":
         if (!mesihba) {
-          await msg.reply(msg.from, "אין יציאה באופק");
+          await msg.reply("אין יציאה באופק");
           break;
         }
         if (author.pushname in participants && participants[author.pushname] == 1)
@@ -196,8 +220,7 @@ client.on('message', async (msg) => {
                 type: "chat"
             },
             quotedStanzaID: 'Some Random shit',
-            quotedRemoteJid: msg.from,
-            quotedParticipant: author.id}});
+            quotedParticipant: author.id._serialized}});
         }else{
            await client.sendMessage(msg.from, "סבבה רושם אותך",{extra: {
                                                                             quotedMsg: {
@@ -205,9 +228,8 @@ client.on('message', async (msg) => {
                                                                                 type: "chat"
                                                                             },
                                                                             quotedStanzaID: 'Some Random shit',
-                                                                            quotedRemoteJid: msg.from,
-                                                                            quotedParticipant: author.id}});
-            console.log
+                                                                            quotedParticipant: author.id._serialized}});
+                                                                
             console.log({ timestamp: date.getTime(), messageid: msg.id._serialized, sender: msg.from, sendername: author.pushname ,message: msg.body });
           participants[author.pushname] = 1;
           await client.sendMessage(msg.from, `${getComing()} כרגע מגיעים`);
@@ -228,8 +250,7 @@ client.on('message', async (msg) => {
                     type: "chat"
                 },
                 quotedStanzaID: 'Some Random shit',
-                quotedRemoteJid: msg.from,
-                quotedParticipant: author.id}});
+                quotedParticipant: author.id._serialized}});
             participants[author.pushname] = 0;
             await client.sendMessage(msg.from, `${getComing()} כרגע מגיעים`);
           }else{
@@ -240,8 +261,7 @@ client.on('message', async (msg) => {
                     type: "chat"
                 },
                 quotedStanzaID: 'Some Random shit',
-                quotedRemoteJid: msg.from,
-                quotedParticipant: author.id}});
+                quotedParticipant: author.id._serialized}});
 
 
 
@@ -252,15 +272,7 @@ client.on('message', async (msg) => {
         }
         break;
       case "מי מגיע?":
-        for(var person in participants) {
-          var arrive = participants[person];
-          var arrival_string = '';
-          if (arrive == 1) {
-            arrival_string += `, ${person}`;
-          }
-          if (arrival_string == '') { arrival_string = 'וואלה אף אחד לא מגיע'; }
-          await msg.reply(arrival_string);
-        }
+        await msg.reply(getComing_full());
         
         break;
       case "#ביטלנו":
