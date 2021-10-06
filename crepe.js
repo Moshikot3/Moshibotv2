@@ -5,7 +5,7 @@ const fs = require('fs');
 const request = require('request');
 
 const qrcode = require("qrcode-terminal");
-const { Client, Location, List, Buttons } = require('whatsapp-web.js');
+const { Client, Location, MessageMedia, Buttons } = require('whatsapp-web.js');
 
 const SESSION_FILE_PATH = './session.json';
 
@@ -37,7 +37,18 @@ if(fs.existsSync(SESSION_FILE_PATH)) {
   client = new Client();
 }
 
+var Helpmessage = `
+שלום לכולם, אני גיורא ואני פה לארגן יציאות ככה בסבבה.
+אתם יכולים להעזר בי על ידי שליחת הפקודות הבאות:
+•*#התחלנו [יש לציין מקום ושעה ללא סוגריים]* - יצירת יציאה
 
+•*מי מגיע?* - לבדוק מי מגיע
+•*אגיע* - אישור הגעה
+•*לא אגיע* - לא לאשר הגעה
+•*גיורא תן תיוג* - [מתייג את כל חברי הקבוצה לכן השתמשו בחוכמה]
+•*#ביטלנו* - מבטל יציאה קיימת
+•*גיורא* - שולח את ההודעה הזו.
+`
 
 const QRCode = require('qrcode');
 const { clearInterval } = require("timers");
@@ -106,15 +117,26 @@ client.on('ready', () => {
 });
 
 
+client.on('message', msg => {
+  if (msg.body == '!ping'){
+    let media = MessageMedia.fromFilePath("./Kobi.jpg");
+    let button = new Buttons(media,[{body:"bt1"},{body:"bt2"},{body:"bt3"}],"title","footer");
+    client.sendMessage(message.from, button,{'caption':"body"});
+	}
+});
+
+
 client.on('message', message => {
-	if(message.body === '!ping') {
-		message.reply('pong');
+	if(message.body === 'גיורא') {
+		//message.reply(Helpmessage);
+    let media = MessageMedia.fromFilePath("./Kobi.jpg");
+    client.sendMessage(message.from, media, {caption: Helpmessage});
     console.log
 	}
 });
 
 client.on('message', async (msg) => {
-    if(msg.body === 'קובי תן תיוג') {
+    if(msg.body === 'גיורא תן תיוג') {
 		
         const chat = await msg.getChat();
         let text = "";
@@ -276,7 +298,13 @@ client.on('message', async (msg) => {
           }
         }else{
           participants[author.pushname] = 0;
-          await client.sendMessage(msg.from, "קיצור אין יציאה יכבאים ימעפנים, יאאלה לכו חפשו מי יארגן לכם יציאות יחברים חרא.");
+          await client.sendMessage(msg.from, "יאאלה לא צריך אותך..",{extra: {
+            quotedMsg: {
+                body: "לא אגיע",
+                type: "chat"
+            },
+            quotedStanzaID: 'Some Random shit',
+            quotedParticipant: author.id._serialized}});
         }
         break;
       case "מי מגיע?":
