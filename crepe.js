@@ -238,7 +238,7 @@ client.on('message', async (msg) => {
         break;
       case "לא אגיע":
         if (!mesihba) {
-          await msg.reply(msg.from, "אין יציאה באופק");
+          await msg.reply("אין יציאה באופק");
           break;
         }
         if (author.pushname in participants)
@@ -272,13 +272,21 @@ client.on('message', async (msg) => {
         }
         break;
       case "מי מגיע?":
+        if (!mesihba) {
+          await msg.reply("אני לא יודע, אני לא בתהליך של ארגון יציאה.");
+          break;
+        }
         await msg.reply(getComing_full());
         
         break;
       case "#ביטלנו":
+        if (!mesihba) {
+          await msg.reply("את מה לבטל? את היציאה שאין?");
+          break;
+        }
         await msg.reply("היציאה בוטלה בהצלחה");
         participants = {};
-        meshiba = false;
+        mesihba = false;
         clearInterval(reminder_timer);
         break;
       case "בדוק אותי":
