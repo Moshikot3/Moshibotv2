@@ -174,10 +174,10 @@ function getComing_full() {
     for(var person in participants) {
         var arrive = participants[person];
         if (arrive == 1) {
-          arrival_string += `, ${person}`;
+          arrival_string += `, ${person}`; 
         }
-        if (arrival_string == '') { arrival_string = 'וואלה אף אחד לא מגיע'; }
-      }
+    }
+    if (arrival_string == '') {arrival_string = 'וואלה אף אחד לא מגיע';}
     return arrival_string;
 }
 
@@ -205,7 +205,7 @@ client.on('message', async (msg) => {
         let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],MessagesFile.EventTitle+LocationString,MessagesFile.EventFooter);
         await client.sendMessage(msg.from, button);
         chat = await msg.getChat();
-        reminder_timer = setInterval(reminder, 15*1000, msg.from);
+        reminder_timer = setInterval(reminder, 1800*1000, msg.from);
         break;
       case "אגיע":
         if (!mesihba) {
