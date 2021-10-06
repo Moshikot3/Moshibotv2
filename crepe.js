@@ -117,9 +117,6 @@ client.on('message', async (msg) => {
     if(msg.body === 'קובי תן תיוג') {
 		
         const chat = await msg.getChat();
-		//Get sender name
-		//const author = await msg.getContact();
-        
         let text = "";
         let mentions = [];
 
@@ -129,8 +126,7 @@ client.on('message', async (msg) => {
             mentions.push(contact);
             text += `@${participant.id.user} `;
         }
-        client.sendMessage("972544911249-1633190920@g.us", "Hello",{quotedMessageId: "false_972544911249-1633190920@g.us_3EB0ED440D57D7DFE654_972544911249@c.us"});
-        //await msg.reply("מתייג את כולם:\n"+text,"", { mentions });
+        await msg.reply("מתייג את כולם:\n"+text,"", { mentions });
     }
 });
 
@@ -153,7 +149,7 @@ async function reminder(chatid) {
     if (noresponse_string == '') { clearInterval(reminder_timer); return; }
     let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],"חוזר בשנית: "+MessagesFile.EventTitle+LocationString,MessagesFile.EventFooter);
     if (getComing_full() != '') { noresponse_string += `\n*בנתיים מגיעים:*\n${getComing_full()}`}   
-    await client.sendMessage(chatid, `מזכיר עדיין לא עדכנתם ${noresponse_string}`, { mentions });
+    await client.sendMessage(chatid, `תזכורת - עדיין לא קיבלתי מענה מכם:\n ${noresponse_string}`, { mentions });
     await client.sendMessage(chatid, button);
 }
 
@@ -202,9 +198,21 @@ client.on('message', async (msg) => {
         }
         mesihba = true;
         //let button = new Buttons("יש מסיבה מגיעים אחים שלי?",[{body:"מגיע"},{body:"לא מגיע אחי"}]);
+         chat = await msg.getChat();
+         text = "";
+         mentions = [];
+
+        for(let participant of chat.participants) {
+            const contact = await client.getContactById(participant.id._serialized);
+            
+            mentions.push(contact);
+            text += `@${participant.id.user} `;
+        }
+        await msg.reply("שימו ❤️:\n"+text,"", { mentions });
+    
+
         let button = new Buttons(MessagesFile.EventBody,[{body:"אגיע"},{body:"לא אגיע"}],MessagesFile.EventTitle+LocationString,MessagesFile.EventFooter);
         await client.sendMessage(msg.from, button);
-        chat = await msg.getChat();
         reminder_timer = setInterval(reminder, 1800*1000, msg.from);
         break;
       case "אגיע":
