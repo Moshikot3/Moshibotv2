@@ -129,7 +129,7 @@ client.on('message', async (msg) => {
       quotedStanzaID: 'Some Random shit',
       quotedParticipant: author.id._serialized},   
       sendMediaAsSticker: true,
-      stickerName: "Made by mosh",
+      stickerName: "Made by:",
       stickerAuthor: author.pushname,
     })
     //msg.reply(`
