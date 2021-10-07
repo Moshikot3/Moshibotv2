@@ -48,6 +48,7 @@ var Helpmessage = `
 •*גיורא תן תיוג* - [מתייג את כל חברי הקבוצה לכן השתמשו בחוכמה]
 •*#ביטלנו* - מבטל יציאה קיימת
 •*גיורא* - שולח את ההודעה הזו.
+•*מדבקה* - שולח בחזרה את התמונה ששלחתם כמדבקה.
 `
 
 const QRCode = require('qrcode');
@@ -116,16 +117,45 @@ client.on('ready', () => {
     console.log('Ready');
 });
 
-
-client.on('message', msg => {
-  if (msg.body == '!ping'){
-    let media = MessageMedia.fromFilePath("./Kobi.jpg");
-    let button = new Buttons(media,[{body:"bt1"},{body:"bt2"},{body:"bt3"}],"title","footer");
-    client.sendMessage(message.from, button,{'caption':"body"});
+client.on('message', async (msg) => {
+  if (msg.body == 'מדבקה' && msg.hasMedia){
+    const author = await msg.getContact();
+    const attachmentData = await msg.downloadMedia();
+    client.sendMessage(msg.from, attachmentData, {extra: {
+      quotedMsg: {
+          body: msg.body,
+          type: "chat"
+      },
+      quotedStanzaID: 'Some Random shit',
+      quotedParticipant: author.id._serialized},   
+      sendMediaAsSticker: true,
+      stickerName: "Made by:",
+      stickerAuthor: author.pushname,
+    })
+    //msg.reply(`
+     //   *Media info*
+      //  MimeType: ${attachmentData.mimetype}
+        //Filename: ${attachmentData.filename}
+        //Data (length): ${attachmentData.data.length}
+    //`);
 	}
 });
 
 
+
+client.on('message', async (msg) => {
+  if (msg.body == '!ping' && msg.hasMedia){
+    const attachmentData = await msg.downloadMedia();
+    await chat.sendMessage(msg.from, {quotedMessageId: msg.id});
+
+    //msg.reply(`
+     //   *Media info*
+      //  MimeType: ${attachmentData.mimetype}
+        //Filename: ${attachmentData.filename}
+        //Data (length): ${attachmentData.data.length}
+    //`);
+	}
+});
 client.on('message', message => {
 	if(message.body === 'גיורא') {
 		//message.reply(Helpmessage);
